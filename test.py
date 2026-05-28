@@ -4,6 +4,8 @@ import datetime
 import time
 from PIL import Image
 import numpy as np
+from fpdf import FPDF
+import io
 
 # പേജ് സെറ്റിംഗ്സ്
 st.set_page_config(page_title="UTA Astrology & Wellness", layout="centered")
@@ -272,7 +274,7 @@ if check_password():
             
             if diff == 11:
                 shani_status = f"⚠️ <b>നിങ്ങൾക്ക് ഇപ്പോൾ ഏഴരശനി ആരംഭിച്ചിട്ടുണ്ട് (ജന്മശനിക്ക് മുൻപുള്ള രാശിയിൽ)!</b> ശനി ഇപ്പോൾ നിൽക്കുന്നത് {saturn_rashi_name} രാശിയിലാണ്."
-                advice = "ശനിയാഴ്ചകളിൽ ശാസ്താവിന് നീരാജനം അർപ്പിക്കുന്നത് ദോഷശമനത്തിന് ഉത്തമമാണ്."
+                advice = "शനിയാഴ്ചകളിൽ ശാസ്താവിന് നീരാജനം അർപ്പിക്കുന്നത് ദോഷശമനത്തിന് ഉത്തമമാണ്."
             elif diff == 0:
                 shani_status = f"🚨 <b>നിങ്ങൾക്ക് ഇപ്പോൾ ജന്മശനിയാണ് (ഏഴരശനിയുടെ മധ്യഘട്ടം)!</b> ശനി നിങ്ങളുടെ ചന്ദ്രരാശിയായ {saturn_rashi_name}-ൽ തന്നെ തുടരുന്നു."
                 advice = "അനാവശ്യ കൂട്ടുകെട്ടുകളും എടുത്തുചാട്ടങ്ങളും ഒഴിവാക്കുക. ഹനുമാൻ ചാലീസ ജപിക്കുന്നത് നല്ലതാണ്."
@@ -302,17 +304,16 @@ if check_password():
             # =========================================================
             # 👶 സിസേറിയൻ + അച്ഛനമ്മമാരുടെ പിതൃദോഷ ലോജിക്
             # =========================================================
+            cesarean_report_msg = ""
             if is_cesarean == "Yes" and father_nak and mother_nak:
                 st.markdown("#### 🧬 ജനന രീതിയും മാതാപിതാക്കളുടെ പൊരുത്തവും")
                 f_idx = MAL_NAK.index(father_nak)
                 m_idx = MAL_NAK.index(mother_nak)
                 parent_distance = (f_idx - m_idx) % 27
                 
-                # യോനി, വശ്യ പൊരുത്തം സിമുലേഷൻ
                 has_yoni_porutham = True if parent_distance % 2 != 0 else False
                 has_vashya_porutham = True if parent_distance % 3 != 0 else False
                 
-                cesarean_report_msg = ""
                 if not has_yoni_porutham or not has_vashya_porutham:
                     cesarean_report_msg = (
                         "⚠️ <b>പിതൃദോഷ സൂചന:</b> മാതാപിതാക്കളുടെ നക്ഷത്രങ്ങൾ തമ്മിൽ വശ്യം / യോനി പൊരുത്തങ്ങളുടെ കുറവ് കാണിക്കുന്നതിനാൽ, "
@@ -337,14 +338,12 @@ if check_password():
             # =========================================================
             # 💑 10 പൊരുത്തം മാച്ചിംഗ് ലോജിക് (പങ്കാളി ഓപ്ഷൻ സെലക്ട് ചെയ്താൽ മാത്രം)
             # =========================================================
+            matched_count = 0
+            porutham_details = []
             if partner_nak_selected:
                 st.markdown("#### 💑 നക്ഷത്ര പൊരുത്ത ഫലം (10 Porutham Analysis)")
                 p_idx = MAL_NAK.index(partner_nak_selected)
-                
                 distance = (p_idx - nak_idx) % 27
-                matched_count = 0
-                porutham_details = []
-                
                 poruthams = ["ദിനം", "ഗണം", "മഹേന്ദ്രം", "സ്ത്രീദീർഘം", "യോനി", "രാശി", "രാശ്യാധിപൻ", "വശ്യം", "രജ്ജു", "വേധം"]
                 
                 for index, p_name in enumerate(poruthams):
@@ -475,74 +474,39 @@ if check_password():
             whatsapp_url = f"https://wa.me/{whatsapp_number}?text={msg.replace('\n', '%0A').replace(' ', '%20')}"
             
             st.success("🎉 റിപ്പോർട്ട് തയ്യാർ!")
-            st.markdown(f'<div style="text-align: center; margin-bottom: 20px;"><a href="{whatsapp_url}" target="_blank" style="text-decoration: none;"><div style="background-color: #25D366; color: white; padding: 15px; border-radius: 10px; font-weight: bold; display: inline-block;">📲 റിപ്പോർട്ടും ഗ്രഹനിലയും അയക്കുക</div></a></div>', unsafe_allow_html=True)
 
-            # =========================================================
-            # 🪐 രാശി ചക്രവും നവാംശ ചക്രവും (Rashi & Navamsha Charts)
-            # =========================================================
-            chart_data = {i: [] for i in range(12)}
-            navamsha_data = {i: [] for i in range(12)}
-            
-            lagnam_deg = ascmc[0]
-            chart_data[int(lagnam_deg/30)].append("ലഗ്")
-            navamsha_data[int((lagnam_deg * 9 / 30) % 12)].append("ലഗ്")
-
-            for p_id, p_name in PLANETS.items():
-                res, _ = swe.calc_ut(jd, p_id, swe.FLG_SIDEREAL)
-                p_deg = res[0]
-                chart_data[int(p_deg/30)].append(p_name)
-                navamsha_data[int((p_deg * 9 / 30) % 12)].append(p_name)
-            
-            r_res, _ = swe.calc_ut(jd, swe.MEAN_NODE, swe.FLG_SIDEREAL)
-            rahu_deg = r_res[0]
-            ketu_deg = (rahu_deg + 180) % 360
-            
-            chart_data[int(rahu_deg/30)].append("രാ")
-            chart_data[int(ketu_deg/30)].append("കേ")
-            
-            navamsha_data[int((rahu_deg * 9 / 30) % 12)].append("രാ")
-            navamsha_data[int((ketu_deg * 9 / 30) % 12)].append("കേ")
-            
-            grid = [[11, 0, 1, 2], [10, -1, -1, 3], [9, -1, -1, 4], [8, 7, 6, 5]]
-            
-            html_rashi = '<table class="rashi-table">'
-            for row in grid:
-                html_rashi += '<tr>'
-                for cell in row:
-                    if cell == -1: 
-                        html_rashi += '<td class="empty-td"></td>'
-                    else:
-                        content = "<br>".join(chart_data[cell])
-                        cell_bg = "background-color: #ffebee;" if any(p in ["ശ", "ചൊ", "രാ", "കേ"] for p in chart_data[cell]) else ""
-                        html_rashi += f'<td class="rashi-td" style="{cell_bg}">{content}</td>'
-                html_rashi += '</tr>'
-            html_rashi += '</table>'
-
-            html_navamsha = '<table class="rashi-table">'
-            for row in grid:
-                html_navamsha += '<tr>'
-                for cell in row:
-                    if cell == -1: 
-                        html_navamsha += '<td class="empty-td"></td>'
-                    else:
-                        content = "<br>".join(navamsha_data[cell])
-                        cell_bg = "background-color: #e8eaf6;" if "ലഗ്" in navamsha_data[cell] else ""
-                        html_navamsha += f'<td class="rashi-td" style="{cell_bg}">{content}</td>'
-                html_navamsha += '</tr>'
-            html_navamsha += '</table>'
-
-            st.markdown(f"""
-            <div class="charts-container">
-                <div class="chart-box">
-                    <h4>☸️ രാശി ചക്രം (Rashi Chart)</h4>
-                    {html_rashi}
-                </div>
-                <div class="chart-box">
-                    <h4>🔲 അംശകം ചക്രം (Navamsha Chart)</h4>
-                    {html_navamsha}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        except Exception as e:
-            st.error(f"Error: {e}")
+            # ==========================================
+            # 📄 PDF ജനറേഷൻ ലോജിക് (FPDF2) - UPDATED FULL REPORT
+            # ==========================================
+            def generate_astrology_pdf():
+                pdf = FPDF()
+                pdf.add_page()
+                
+                # സുന്ദരമായ ഒരു ബോർഡറും ഡിസൈനും
+                pdf.set_stroke_color(26, 35, 126) 
+                pdf.set_line_width(1)
+                pdf.rect(5, 5, 200, 287) 
+                
+                # ഹെഡ്ഡർ സെക്ഷൻ
+                pdf.set_fill_color(26, 35, 126)
+                pdf.rect(5, 5, 200, 25, 'F')
+                
+                pdf.set_font("Helvetica", "B", 16)
+                pdf.set_text_color(255, 255, 255)
+                pdf.cell(0, 15, "UTA ASTROLOGY & DIGITAL WELLNESS REPORT", ln=True, align="C")
+                pdf.ln(10)
+                
+                # 1. പേഴ്സണൽ ഡീറ്റെയിൽസ്
+                pdf.set_text_color(26, 35, 126)
+                pdf.set_font("Helvetica", "B", 13)
+                pdf.cell(0, 10, "1. PERSONAL HOROSCOPE & WELLNESS DETAILS", ln=True)
+                pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                pdf.ln(4)
+                
+                pdf.set_font("Helvetica", "", 10)
+                pdf.set_text_color(0, 0, 0)
+                pdf.cell(90, 7, f"Name: {name}")
+                pdf.cell(90, 7, f"Star (Nakshathram): {MAL_NAK[nak_idx]}", ln=True)
+                pdf.cell(90, 7, f"Date of Birth: {dob.strftime('%d/%m/%Y')} ({weekday_name})")
+                pdf.cell(90, 7, f"Lagnam: {lagnam_rashi} | Rashi: {moon_rashi}", ln=True)
+                pdf.cell(90, 7, f"Time of Birth: {birth_time} ({birth_time_type})
