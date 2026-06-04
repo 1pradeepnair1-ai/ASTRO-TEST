@@ -4,20 +4,29 @@ import datetime
 import time
 from PIL import Image
 import numpy as np
+import random
+import urllib.parse
 from fpdf import FPDF
-import io
 
 # പേജ് സെറ്റിംഗ്സ്
 st.set_page_config(page_title="UTA Astrology & Wellness", layout="centered")
 
-# പാസ്‌വേഡ് സെക്ഷൻ
+# ==================== 🔐 WHATSAPP VERIFICATION LOGIC ====================
+# ⚠️ ഇവിടെ നിന്റെ വാട്സാപ്പ് നമ്പർ കൺട്രി കോഡ് സഹിതം (+ ഇല്ലാതെ) നൽകുക. 
+# ഉദാഹരണത്തിന്: "919876543210" (91 എന്നത് ഇന്ത്യയുടെ കോഡ്)
+MY_WHATSAPP_NUMBER = "919447093393" # ഇവിടെ നിന്റെ കറക്റ്റ് നമ്പർ ടൈപ്പ് ചെയ്യുക അളിയാ
+
 def check_password():
     if "password_correct" not in st.session_state:
         st.session_state.password_correct = False
-    
+    if "generated_code" not in st.session_state:
+        st.session_state.generated_code = None
+    if "code_generated_flag" not in st.session_state:
+        st.session_state.code_generated_flag = False
+        
     if st.session_state.password_correct:
         return True
-    
+        
     col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
     with col_l2:
         try:
@@ -31,15 +40,54 @@ def check_password():
     
     col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
     with col_p2:
-        password = st.text_input("Password:", type="password")
-        if st.button("Login", use_container_width=True):
-            if password == "pradeep": 
-                st.session_state.password_correct = True
+        user_phone = st.text_input("നിങ്ങളുടെ ഫോൺ നമ്പർ നൽകുക:")
+        
+        if not st.session_state.code_generated_flag:
+            if st.button("Get Verification Code", use_container_width=True):
+                if user_phone:
+                    # 6 അക്ക വെരിഫിക്കേഷൻ കോഡ് ഉണ്ടാക്കുന്നു
+                    st.session_state.generated_code = str(random.randint(100000, 999999))
+                    st.session_state.code_generated_flag = True
+                    st.rerun()
+                else:
+                    st.error("ദയവായി ഫോൺ നമ്പർ ടൈപ്പ് ചെയ്യുക!")
+                    
+        if st.session_state.code_generated_flag:
+            st.info("👇 താഴെ കാണുന്ന ബട്ടൺ ക്ലിക്ക് ചെയ്ത് വാട്സാപ്പിൽ കോഡ് അയക്കുക. അതിനുശേഷം ലോഗിൻ ചെയ്യാം.")
+            
+            # വാട്സാപ്പിലേക്ക് അയക്കാനുള്ള മെസ്സേജ് ലിങ്ക് ഉണ്ടാക്കുന്നു
+            msg = f"Hello Pradeep, My Astro Login Verification Code is: {st.session_state.generated_code}"
+            encoded_msg = urllib.parse.quote(msg)
+            whatsapp_url = f"https://wa.me/{MY_WHATSAPP_NUMBER}?text={encoded_msg}"
+            
+            # വാട്സാപ്പ് ഓപ്പൺ ചെയ്യാനുള്ള ബട്ടൺ
+            st.markdown(f'''
+                <a href="{whatsapp_url}" target="_blank" style="text-decoration: none;">
+                    <button style="width: 100%; background-color: #25D366; color: white; border: none; padding: 10px; font-size: 16px; font-weight: bold; border-radius: 5px; cursor: pointer; margin-bottom: 20px;">
+                        💬 Send Code via WhatsApp
+                    </button>
+                </a>
+            ''', unsafe_allow_html=True)
+            
+            # കോഡ് ടൈപ്പ് ചെയ്യാനുള്ള ബോക്സ്
+            input_code = st.text_input("നിങ്ങളുടെ വാട്സാപ്പിൽ വന്ന കോഡ് ഇവിടെ അടിക്കുക:", type="password")
+            
+            if st.button("Verify & Login", use_container_width=True):
+                if input_code == st.session_state.generated_code:
+                    st.session_state.password_correct = True
+                    st.success("✅ ലോഗിൻ വിജയകരം!")
+                    st.rerun()
+                else:
+                    st.error("❌ തെറ്റായ കോഡ്! വീണ്ടും പരിശോധിക്കുക.")
+                    
+            if st.button("Change Phone Number", type="secondary"):
+                st.session_state.code_generated_flag = False
+                st.session_state.generated_code = None
                 st.rerun()
-            else:
-                st.error("Incorrect Password!")
+                
     return False
 
+# ==================== MAIN APPLICATION ====================
 if check_password():
     try:
         logo = Image.open('image_2.png (2).jpg')
@@ -49,28 +97,26 @@ if check_password():
 
     # CSS സ്റ്റൈലുകൾ
     st.markdown("""
-        <style>
-        .charts-container { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px; margin: 20px auto; }
-        .chart-box { flex: 1; min-width: 300px; text-align: center; }
-        .rashi-table { width: 100%; border-collapse: collapse; border: 4px solid #1a237e; table-layout: fixed; background-color: white; }
-        .rashi-td { border: 2px solid #1a237e; height: 85px; text-align: center; vertical-align: middle; font-size: 13px; font-weight: bold; color: #1a237e; }
-        .empty-td { background-color: #f8f9fa; border: 2px solid #1a237e; }
-        .pred-box { padding: 15px; border-radius: 12px; margin-top: 10px; font-size: 16px; line-height: 1.6; }
-        .strength { background-color: #e8f5e9; border: 1px solid #4caf50; color: #1b5e20; padding: 12px; border-radius: 8px; margin-bottom: 10px; }
-        .caution { background-color: #ffebee; border: 1px solid #ef5350; color: #b71c1c; padding: 12px; border-radius: 8px; }
-        .shani-alert-box { background-color: #ede7f6; border: 2px solid #673ab7; padding: 15px; border-radius: 10px; margin: 15px 0; font-size: 16px; color: #4a148c; }
-        .info-pill { background-color: #f1f3f4; border: 1px solid #dadce0; padding: 5px 15px; border-radius: 15px; display: inline-block; margin-right: 10px; font-weight: bold; color: #202124; }
-        .current-dasha-box { background-color: #fff9c4; border: 2px dashed #fbc02d; padding: 15px; border-radius: 10px; margin: 15px 0; font-size: 16px; color: #f57f17; }
-        
-        .jatakam-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 16px; font-family: sans-serif; }
-        .jatakam-table td { padding: 10px; border-bottom: 1px solid #ddd; vertical-align: top; }
-        .jatakam-key { font-weight: bold; color: #1a237e; width: 40%; }
-        .jatakam-val { color: #333; }
-
-        .porutham-box { background-color: #e3f2fd; border: 2px solid #1e88e5; padding: 15px; border-radius: 10px; margin: 15px 0; font-size: 16px; color: #0d47a1; }
-        .cesarean-box { background-color: #fff3e0; border: 2px solid #ff9800; padding: 15px; border-radius: 10px; margin: 15px 0; font-size: 16px; color: #e65100; }
-        </style>
-        """, unsafe_allow_html=True)
+    <style>
+    .charts-container { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px; margin: 20px auto; }
+    .chart-box { flex: 1; min-width: 300px; text-align: center; }
+    .rashi-table { width: 100%; border-collapse: collapse; border: 4px solid #1a237e; table-layout: fixed; background-color: white; }
+    .rashi-td { border: 2px solid #1a237e; height: 85px; text-align: center; vertical-align: middle; font-size: 13px; font-weight: bold; color: #1a237e; }
+    .empty-td { background-color: #f8f9fa; border: 2px solid #1a237e; }
+    .pred-box { padding: 15px; border-radius: 12px; margin-top: 10px; font-size: 16px; line-height: 1.6; }
+    .strength { background-color: #e8f5e9; border: 1px solid #4caf50; color: #1b5e20; padding: 12px; border-radius: 8px; margin-bottom: 10px; }
+    .caution { background-color: #ffebee; border: 1px solid #ef5350; color: #b71c1c; padding: 12px; border-radius: 8px; }
+    .shani-alert-box { background-color: #ede7f6; border: 2px solid #673ab7; padding: 15px; border-radius: 10px; margin: 15px 0; font-size: 16px; color: #4a148c; }
+    .info-pill { background-color: #f1f3f4; border: 1px solid #dadce0; padding: 5px 15px; border-radius: 15px; display: inline-block; margin-right: 10px; font-weight: bold; color: #202124; }
+    .current-dasha-box { background-color: #fff9c4; border: 2px dashed #fbc02d; padding: 15px; border-radius: 10px; margin: 15px 0; font-size: 16px; color: #f57f17; }
+    .jatakam-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 16px; font-family: sans-serif; }
+    .jatakam-table td { padding: 10px; border-bottom: 1px solid #ddd; vertical-align: top; }
+    .jatakam-key { font-weight: bold; color: #1a237e; width: 40%; }
+    .jatakam-val { color: #333; }
+    .porutham-box { background-color: #e3f2fd; border: 2px solid #1e88e5; padding: 15px; border-radius: 10px; margin: 15px 0; font-size: 16px; color: #0d47a1; }
+    .cesarean-box { background-color: #fff3e0; border: 2px solid #ff9800; padding: 15px; border-radius: 10px; margin: 15px 0; font-size: 16px; color: #e65100; }
+    </style>
+    """, unsafe_allow_html=True)
 
     swe.set_sid_mode(swe.SIDM_LAHIRI)
     
@@ -112,8 +158,8 @@ if check_password():
     birth_place = st.selectbox("ജനന സ്ഥലം (ജില്ല):", list(DISTRICTS.keys()))
 
     MAL_NAK = ["അശ്വതി", "ഭരണി", "കാർത്തിക", "രോഹിണി", "മകയിരം", "തിരുവാതിര", "പുണർതം", "പൂയം", "ആയില്യം", "മകം", "പൂരം", "ഉത്രം", "അത്തം", "ചിത്ര", "ചോതി", "വിശാഖം", "അനിഴം", "തൃക്കേട്ട", "മൂലം", "പൂരാടം", "ഉത്രാടം", "തിരുവോണം", "അവിട്ടം", "ചതയം", "പൂരുരുട്ടാതി", "ഉത്രട്ടാതി", "രേവതി"]
+    ENG_NAK = ["Ashwathi", "Bharani", "Karthika", "Rohini", "Makayiram", "Thiruvathira", "Punartham", "Pooyam", "Ayilyam", "Makam", "Pooram", "Uthram", "Atham", "Chithra", "Chothi", "Visakham", "Anizham", "Thrikketta", "Moolam", "Pooradam", "Uthradam", "Thiruvonam", "Avittam", "Chathayam", "Pooruruttathi", "Uthruttathi", "Revathi"]
 
-    # 1. പങ്കാളി പൊരുത്ത പരിശോധന (18 വയസ്സിന് മുകളിൽ ഉള്ളവർക്ക്)
     today = datetime.date.today()
     age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
     
@@ -125,7 +171,6 @@ if check_password():
         if check_compatibility:
             partner_nak_selected = st.selectbox("പങ്കാളിയുടെ നക്ഷത്രം സെലക്ട് ചെയ്യുക:", MAL_NAK)
 
-    # 2. സിസേറിയൻ ബേബി ഓപ്ഷൻ (Option B) + മാതാപിതാക്കളുടെ നക്ഷത്രങ്ങൾ
     st.markdown("---")
     st.subheader("👶 ജനന രീതി പരിശോധന")
     is_cesarean = st.radio("നിങ്ങൾ ഒരു സിസേറിയൻ ബേബി (Cesarean Birth) ആണോ?", ["No", "Yes"])
@@ -195,16 +240,22 @@ if check_password():
             nak_number = nak_idx + 1 
             shareera_sankhya = (dob.year + pulse) * nak_number
 
-            STRENGTHS = ["ഊർജ്ജസ്വലത", "ധൈര്യം", "സ്ഥിരബുദ്ധി", "സത്യസന്ധത", "ബുദ്ധിശക്തി", "പെട്ടെന്നുള്ള ചിന്ത", "ദയ", "മറ്റുള്ളവരെ സഹായിക്കാനുള്ള മനസ്സ്", "അറിവ്", "നേതൃപാടവം", "സ്നേഹം", "ക്ഷമ", "കഠിനാധ്വാനം", "കലാപരമായ കഴിവ്", "സ്വാതന്ത്ര്യം", "ലക്ഷ്യബോധം", "ഭക്തി", "തന്ത്രപരമായ ചിന്ത", "ആത്മീയത", "സമാധാനം", "ആദർശങ്ങൾ", "ചിട്ടയായ ജീവിതം", "ധീരത", "പരസഹായം", "വിശ്വസ്തത", "ശാന്തത", "മൃദുഭാഷണം"]
-            CAUTIONS = ["ധൃതി", "പിടിവാശി", "പെട്ടെന്നുള്ള ദേഷ്യം", "അമിത ചിന്ത", "അസ്ഥിരത", "വൈകാരികമായ എടുത്തുചാട്ടം", "സംശയം", "അമിത ഉത്കണ്ഠ", "പക", "അഹങ്കാരം", "സങ്കടപ്പെടാനുള്ള പ്രവണത", "മടി", "ആത്മവിശ്വാസക്കുറവ്", "മറ്റുള്ളവരുടെ കാര്യത്തിൽ ഇടപെടൽ", "ഭയം", "അമിത ചെലവ്", "ഏകാന്തത", "മത്സരബുദ്ധി", "സംശയം", "ചഞ്ചലമനസ്സ്", "പിടിവാശി", "അലസത", "രഹസ്യസ്വഭാവം", "അശ്രദ്ധ", "ഭ്രമം", "വേവലാതി", "ആശങ്ക"]
+            # 🪐 പ്ലാനറ്റ് ലിസ്റ്റ് (രാഹുവും കേതുവും ഉൾപ്പെടുത്തിയത്)
+            PLANETS = {
+                swe.SUN: "സൂ", swe.MOON: "ച", swe.MARS: "ചൊ", 
+                swe.MERCURY: "ബു", swe.JUPITER: "വ്യാ", swe.VENUS: "ശു", 
+                swe.SATURN: "ശ", swe.MEAN_NODE: "രാ"
+            }
             
-            PLANETS = {swe.SUN: "സൂ", swe.MOON: "ച", swe.MARS: "ചൊ", swe.MERCURY: "ബു", swe.JUPITER: "വ്യാ", swe.VENUS: "ശു", swe.SATURN: "ശ"}
             rashi_names = ["മേടം", "ഇടവം", "മിഥുനം", "കർക്കിടകം", "ചിങ്ങം", "കന്നി", "തുലാം", "വൃശ്ചികം", "ധനു", "മകരം", "കുംഭം", "മീനം"]
+            rashi_names_eng = ["Mesham", "Idavam", "Mithunam", "Karkidakam", "Chingam", "Kanni", "Thulam", "Vrishchikam", "Dhanu", "Makaram", "Kumbham", "Meenam"]
             
             cusps, ascmc = swe.houses_ex(jd, lat, lon, b'P', swe.FLG_SIDEREAL)
             lagnam_rashi = rashi_names[int(ascmc[0]/30)]
+            lagnam_rashi_eng = rashi_names_eng[int(ascmc[0]/30)]
             moon_rashi_idx = int(res_moon[0]/30)
             moon_rashi = rashi_names[moon_rashi_idx]
+            moon_rashi_eng = rashi_names_eng[moon_rashi_idx]
 
             res_sun, _ = swe.calc_ut(jd, swe.SUN, swe.FLG_SIDEREAL)
             sun_long = res_sun[0]
@@ -215,7 +266,6 @@ if check_password():
             if dob.month < 8 or (dob.month == 8 and dob.day < 15):
                 mal_year -= 1
 
-            # പകൽ / രാത്രി ജനനം കണ്ടെത്തുന്നു (6 AM to 6 PM പകൽ, ബാക്കി രാത്രി)
             is_day_birth = True if 6 <= h < 18 else False
             birth_time_type = "പകൽ" if is_day_birth else "രാത്രി"
 
@@ -225,12 +275,11 @@ if check_password():
             <div style='margin-bottom: 15px;'>
                 <span class='info-pill'>📅 Year: {dob.year}</span>
                 <span class='info-pill'>💓 Pulse: {pulse}</span>
-                <span class='info-pill'>🔢 നക്ഷത്ര സംഖ്യ: {nak_number}</span>
-                <span class='info-pill' style='background-color: #ffd700; color: #000; border: 2px solid #b8860b;'>🧬 ശരീര സംഖ്യ: {shareera_sankhya}</span>
+                <span class='info-pill'>🔢നക്ഷത്ര സംഖ്യ: {nak_number}</span>
+                <span class='info-pill' style='background-color: #ffd700; color: #000; border: 2px solid #b8860b;'>🧬ശരീര സംഖ്യ: {shareera_sankhya}</span>
             </div>
             """, unsafe_allow_html=True)
             
-            # 📜 ജാതക വിവരങ്ങൾ
             st.markdown("#### 📜 ജാതക വിവരങ്ങൾ (Horoscope Details)")
             birth_time = f"{hr}:{mi:02d} {ap}"
             days_of_week = ["തിങ്കൾ", "ചൊവ്വ", "ബുധൻ", "വ്യാഴം", "വെള്ളി", "ശനി", "ഞായർ"]
@@ -251,11 +300,62 @@ if check_password():
             st.markdown(html_jatakam, unsafe_allow_html=True)
             st.markdown("---")
 
-            # =========================================================
-            # 🪐 ശനിദോഷ പരിശോധന + പകൽ/രാത്രി ആശ്വാസ ലോജിക്
-            # =========================================================
-            st.markdown("#### 🪐 ശനിദോഷ പരിശോധന (Saturn Transit Analysis)")
+            # ഗ്രഹനില & നവാംശം ചാർട്ടുകൾ ലോജിക്
+            st.markdown("#### 🗺️ ഗ്രഹനിലയും നവാംശവും (Rashi & Navamsha Charts)")
             
+            rashi_chart_data = {i: [] for i in range(12)}
+            navamsha_chart_data = {i: [] for i in range(12)}
+            
+            lag_idx = int(ascmc[0] / 30)
+            rashi_chart_data[lag_idx].append("ലഗ്")
+            navamsha_chart_data[int((ascmc[0] * 9) / 30) % 12].append("ലഗ്")
+            
+            for p_code, p_name in PLANETS.items():
+                res, _ = swe.calc_ut(jd, p_code, swe.FLG_SIDEREAL)
+                p_long = res[0]
+                
+                r_idx = int(p_long / 30)
+                rashi_chart_data[r_idx].append(p_name)
+                
+                n_idx = int((p_long * 9) / 30) % 12
+                navamsha_chart_data[n_idx].append(p_name)
+                
+                if p_code == swe.MEAN_NODE:
+                    k_long = (p_long + 180.0) % 360
+                    kr_idx = int(k_long / 30)
+                    kn_idx = int((k_long * 9) / 30) % 12
+                    rashi_chart_data[kr_idx].append("കേ")
+                    navamsha_chart_data[kn_idx].append("കേ")
+                
+            kerala_box_mapping = [11, 0, 1, 2, 10, -1, -1, 3, 9, -1, -1, 4, 8, 7, 6, 5]
+            
+            def generate_chart_html(chart_dict, title):
+                html = f"<div class='chart-box'><h5>{title}</h5><table class='rashi-table'>"
+                for i in range(4):
+                    html += "<tr>"
+                    for j in range(4):
+                        box_idx = kerala_box_mapping[i * 4 + j]
+                        if box_idx == -1:
+                            if i == 1 and j == 1:
+                                html += f"<td colspan='2' rowspan='2' class='empty-td' style='font-size:14px; font-weight:bold; color:#1a237e;'>{title}</td>"
+                            elif j == 1 or j == 2:
+                                continue
+                        else:
+                            planets_in_box = ", ".join(chart_dict[box_idx]) if chart_dict[box_idx] else ""
+                            html += f"<td class='rashi-td'>{rashi_names[box_idx]}<br><span style='color:#d32f2f;'>{planets_in_box}</span></td>"
+                    html += "</tr>"
+                html += "</table></div>"
+                return html
+
+            chart_col1, chart_col2 = st.columns(2)
+            with chart_col1:
+                st.markdown(generate_chart_html(rashi_chart_data, "രാശി ചാർട്ട് (Rashi)"), unsafe_allow_html=True)
+            with chart_col2:
+                st.markdown(generate_chart_html(navamsha_chart_data, "നവാംശം ചാർട്ട് (Navamsha)"), unsafe_allow_html=True)
+            st.markdown("---")
+
+            # ശനിദോഷ ലോജിക്
+            st.markdown("#### 🪐 ശനിദോഷ പരിശോധന (Saturn Transit Analysis)")
             relief_msg = ""
             if is_day_birth:
                 relief_msg = "<br><br>💡 <b>ഒരു വലിയ ആശ്വാസം:</b> നിങ്ങൾ <b>പകൽ സമയത്ത്</b> ജനിച്ചതുകൊണ്ട് തന്നെ, ജ്യോതിഷ ശാസ്ത്രപ്രകാരം ശനിയുടെ ദോഷ കാഠിന്യം നിങ്ങളുടെ ജീവിതത്തെ അമിതമായി ബാധിക്കുകയില്ല. ദോഷങ്ങളുടെ തീവ്രത വളരെ കുറവായിരിക്കും!"
@@ -268,18 +368,17 @@ if check_password():
             saturn_rashi_name = rashi_names[saturn_rashi_idx]
             
             diff = (saturn_rashi_idx - moon_rashi_idx) % 12
-            
             shani_status = "🟢 ഇപ്പോൾ നിങ്ങൾക്ക് ശനിയുടെ ദോഷകാലങ്ങൾ (ഏഴരശനി/കണ്ടകശനി) നിലവിലില്ല. ശുഭകരം!"
             advice = "സാധാരണ രീതിയിലുള്ള പ്രാർത്ഥനകൾ തുടരുക."
             
             if diff == 11:
-                shani_status = f"⚠️ <b>നിങ്ങൾക്ക് ഇപ്പോൾ ഏഴരശനി ആരംഭിച്ചിട്ടുണ്ട് (ജന്മശനിക്ക് മുൻപുള്ള രാശിയിൽ)!</b> ശനി ഇപ്പോൾ നിൽക്കുന്നത് {saturn_rashi_name} രാശിയിലാണ്."
-                advice = "शനിയാഴ്ചകളിൽ ശാസ്താവിന് നീരാജനം അർപ്പിക്കുന്നത് ദോഷശമനത്തിന് ഉത്തമമാണ്."
+                shani_status = f"⚠️ <b>നിങ്ങൾക്ക് ഇപ്പോൾ ഏഴരശനി ആരംഭിച്ചിട്ടുണ്ട്!</b> ശനി ഇപ്പോൾ നിൽക്കുന്നത് {saturn_rashi_name} രാശിയിലാണ്."
+                advice = "ശനിയാഴ്ചകളിൽ ശാസ്താവിന് നീരാജനം അർപ്പിക്കുന്നത് ദോഷശമനത്തിന് ഉത്തമമാണ് കൂടാതെ ബുധനും ശനിയും വൃതം എടുക്കുന്നതും നന്നായിരിക്കും."
             elif diff == 0:
                 shani_status = f"🚨 <b>നിങ്ങൾക്ക് ഇപ്പോൾ ജന്മശനിയാണ് (ഏഴരശനിയുടെ മധ്യഘട്ടം)!</b> ശനി നിങ്ങളുടെ ചന്ദ്രരാശിയായ {saturn_rashi_name}-ൽ തന്നെ തുടരുന്നു."
                 advice = "അനാവശ്യ കൂട്ടുകെട്ടുകളും എടുത്തുചാട്ടങ്ങളും ഒഴിവാക്കുക. ഹനുമാൻ ചാലീസ ജപിക്കുന്നത് നല്ലതാണ്."
             elif diff == 1:
-                shani_status = f"⚠️ <b>നിങ്ങൾക്ക് ഇപ്പോൾ ഏഴരശനിയുടെ അവസാന ഘട്ടമാണ് (ഇറക്ക ശനി)!</b> ശനി ഇപ്പോൾ നിൽക്കുന്നത് {saturn_rashi_name} രാശിയിലാണ്."
+                shani_status = f"⚠️ <b>നിങ്ങൾക്ക് ഇപ്പോൾ ഏഴരശനിയുടെ അവസാന ഘട്ടമാണ്!</b> ശനി ഇപ്പോൾ നിൽക്കുന്നത് {saturn_rashi_name} രാശിയിലാണ്."
                 advice = "കഠിനാധ്വാനത്തിന് ഫലം ലഭിക്കുന്ന സമയമാണ്. ഈശ്വരപ്രാർത്ഥന കൈവിടരുത്."
             elif diff == 3: 
                 shani_status = f"⚡ <b>നിങ്ങൾക്ക് ഇപ്പോൾ കണ്ടകശനി (4-ാം ഭാവം) നടക്കുകയാണ്!</b> ശനി ഇപ്പോൾ നിൽക്കുന്നത് {saturn_rashi_name} രാശിയിലാണ്."
@@ -292,7 +391,6 @@ if check_password():
                 advice = "തൊഴിൽ രംഗത്ത് കൂടുതൽ ശ്രദ്ധയും ക്ഷമയും ആവശ്യമാണ്. മേലുദ്യോഗസ്ഥരുമായി തർക്കങ്ങൾ ഒഴിവാക്കുക."
 
             final_relief = relief_msg if diff in [11, 0, 1, 3, 6, 9] else ""
-
             st.markdown(f"""
             <div class="shani-alert-box">
                 🎯 {shani_status}<br><br>
@@ -301,51 +399,36 @@ if check_password():
             """, unsafe_allow_html=True)
             st.markdown("---")
 
-            # =========================================================
-            # 👶 സിസേറിയൻ + അച്ഛനമ്മമാരുടെ പിതൃദോഷ ലോജിക്
-            # =========================================================
+            # സിസേറിയൻ ലോജിക്
             cesarean_report_msg = ""
             if is_cesarean == "Yes" and father_nak and mother_nak:
-                st.markdown("#### 🧬 ജനന രീതിയും മാതാപിതാക്കളുടെ പൊരുത്തവും")
+                st.markdown("#### 🧬ജനന രീതിയും മാതാപിതാക്കളുടെ പൊരുത്തവും")
                 f_idx = MAL_NAK.index(father_nak)
                 m_idx = MAL_NAK.index(mother_nak)
                 parent_distance = (f_idx - m_idx) % 27
-                
                 has_yoni_porutham = True if parent_distance % 2 != 0 else False
                 has_vashya_porutham = True if parent_distance % 3 != 0 else False
                 
                 if not has_yoni_porutham or not has_vashya_porutham:
-                    cesarean_report_msg = (
-                        "⚠️ <b>പിതൃദോഷ സൂചന:</b> മാതാപിതാക്കളുടെ നക്ഷത്രങ്ങൾ തമ്മിൽ വശ്യം / യോനി പൊരുത്തങ്ങളുടെ കുറവ് കാണിക്കുന്നതിനാൽ, "
-                        "നിങ്ങൾ ജനിക്കേണ്ട സാധാരണ സമയത്തിന് വ്യത്യാസം ഉണ്ടാകാൻ സാധ്യതയുണ്ടായിരുന്നു. കുടുംബത്തിലെ ഈ പിതൃദോഷ സ്വാധീനം കൊണ്ടാണ് "
-                        "പ്രകൃതിദത്തമായ പ്രസവ സമയത്തിൽ മാറ്റം വരികയും, ശസ്ത്രക്രിയയിലൂടെ (Cesarean) ജനനം നടക്കുകയും ചെയ്തത്."
-                    )
+                    cesarean_report_msg = "⚠️ പിതൃദोष സൂചന: മാതാപിതാക്കളുടെ നക്ഷത്രങ്ങൾ തമ്മിൽ വശ്യം / യോനി പൊരുത്തങ്ങളുടെ കുറവ് കാണിക്കുന്നതിനാൽ, പ്രകൃതിദത്തമായ പ്രസവ സമയത്തിൽ മാറ്റം വരികയും, ശസ്ത്രക്രിയയിലൂടെ ജനനം നടക്കുകയും ചെയ്തു."
                 else:
-                    cesarean_report_msg = (
-                        "✅ <b>ശുഭസൂചന:</b> മാതാപിതാക്കളുടെ നക്ഷത്രങ്ങൾ തമ്മിൽ കൃത്യമായ പൊരുത്തങ്ങൾ ഉള്ളതുകൊണ്ട് തന്നെ, "
-                        "പിതൃദോഷങ്ങൾ മാറിപ്പോകുകയും ദോഷങ്ങളുടെ തീവ്രത കുറയുകയും ചെയ്യുന്നു. സിസേറിയൻ ജനനമായിരുന്നു എങ്കിൽ പോലും "
-                        "അത് ദോഷകരമായി ബാധിക്കുകയില്ല."
-                    )
+                    cesarean_report_msg = "✅ ശുഭസൂചന: മാതാപിതാക്കളുടെ നക്ഷത്രങ്ങൾ തമ്മിൽ കൃത്യമായ പൊരുത്തങ്ങൾ ഉള്ളതുകൊണ്ട് തന്നെ, ദോഷങ്ങളുടെ തീവ്രത കുറയുന്നു."
                 
                 st.markdown(f"""
                 <div class="cesarean-box">
-                    🎯 <b>സിസേറിയൻ ജാതക വിശകലനം:</b><br><br>
-                    {cesarean_report_msg}
+                    🎯 <b>സിസേറിയൻ ജാതക വിശകലനം:</b><br><br>{cesarean_report_msg}
                 </div>
                 """, unsafe_allow_html=True)
                 st.markdown("---")
 
-            # =========================================================
-            # 💑 10 പൊരുത്തം മാച്ചിംഗ് ലോജിക് (പങ്കാളി ഓപ്ഷൻ സെലക്ട് ചെയ്താൽ മാത്രം)
-            # =========================================================
+            # പൊരുത്തം ലോജിക്
             matched_count = 0
-            porutham_details = []
             if partner_nak_selected:
-                st.markdown("#### 💑 നക്ഷത്ര പൊരുത്ത ഫലം (10 Porutham Analysis)")
+                st.markdown("#### 💑നക്ഷത്ര പൊരുത്ത ഫലം (10 Porutham Analysis)")
                 p_idx = MAL_NAK.index(partner_nak_selected)
                 distance = (p_idx - nak_idx) % 27
-                poruthams = ["ദിനം", "ഗണം", "മഹേന്ദ്രം", "സ്ത്രീദീർഘം", "യോനി", "രാശി", "രാശ്യാധിപൻ", "വശ്യം", "രജ്ജു", "വേധം"]
-                
+                poruthams = ["ദിням", "ഗണം", "മഹേന്ദ്രം", "സ്ത്രീദീർഘം", "യോനി", "രാശി", "രാശ്യാധിപൻ", "വശ്യം", "രജ്ജു", "വേдом"]
+                porutham_details = []
                 for index, p_name in enumerate(poruthams):
                     if (distance + index) % 3 != 0:
                         matched_count += 1
@@ -362,151 +445,114 @@ if check_password():
                 """, unsafe_allow_html=True)
                 st.markdown("---")
 
-            # =========================================================
-            # ⏳ 120 വർഷത്തെ ഫുൾ ദശയും ഇൻസ്റ്റന്റ് ട്രാക്കിംഗ് ലോജിക്കും
-            # =========================================================
+            # ദശാ ടൈംലൈൻ (വർഷം മാത്രം)
             st.markdown("#### ⏳ ജന്മശിഷ്ട ദശയും അപഹാരങ്ങളും (Dasha & Apaharam)")
-            
             DASHA_LORDS = ["കേതു", "ശുക്രൻ", "സൂര്യൻ", "ചന്ദ്രൻ", "ചൊവ്വ", "രാഹു", "വ്യാഴം", "ശനി", "ബുധൻ"]
+            DASHA_LORDS_ENG = ["Ketu", "Shukran", "Sooryan", "Chandran", "Chovva", "Rahu", "Vyazham", "Shani", "Budhan"]
             DASHA_YEARS = [7, 20, 6, 10, 7, 18, 16, 19, 17]
             
             lord_idx = nak_idx % 9
             total_years = DASHA_YEARS[lord_idx]
-            
             deg_in_star = nak_long % 13.333333
             rem_fraction = (13.333333 - deg_in_star) / 13.333333
-            
             rem_years = rem_fraction * total_years
             r_y = int(rem_years)
-            r_m = int((rem_years - r_y) * 12)
-            r_d = int((((rem_years - r_y) * 12) - r_m) * 30)
+
+            st.info(f"**ജന്മശിഷ്ട ദശ:** {DASHA_LORDS[lord_idx]} ദശ — {r_y} വർഷം")
+
+            current_date = dob
+            dasha_html_table = "<table style='width:100%; border-collapse: collapse; margin-top:15px; font-size:15px;'>"
+            dasha_html_table += "<tr style='background-color:#1a237e; color:white; font-weight:bold;'><th style='padding:10px; border:1px solid #ddd;'>Dasha Lord</th><th style='padding:10px; border:1px solid #ddd;'>Duration</th><th style='padding:10px; border:1px solid #ddd;'>End Date</th></tr>"
             
-            st.info(f"**ജന്മശിഷ്ട ദശ:** {DASHA_LORDS[lord_idx]} ദശ — {r_y} വർഷം {r_m} മാസം {r_d} ദിവസം")
-            
-            birth_datetime = datetime.datetime(dob.year, dob.month, dob.day, h, mi)
-            current_pointer = birth_datetime + datetime.timedelta(days=rem_years * 365.25)
-            
-            dasha_sequence = []
-            dasha_sequence.append((DASHA_LORDS[lord_idx], birth_datetime, current_pointer))
+            end_date = current_date + datetime.timedelta(days=int(rem_years * 365.25))
+            dasha_html_table += f"<tr><td style='padding:10px; border:1px solid #ddd; font-weight:bold; color:#1a237e;'>{DASHA_LORDS_ENG[lord_idx]} (Balance)</td><td style='padding:10px; border:1px solid #ddd;'>{r_y} Years</td><td style='padding:10px; border:1px solid #ddd; font-weight:bold;'>{end_date.strftime('%d/%m/%Y')}</td></tr>"
+            current_date = end_date
             
             idx = (lord_idx + 1) % 9
-            for _ in range(9):
-                d_lord = DASHA_LORDS[idx]
-                d_years = DASHA_YEARS[idx]
-                end_pointer = current_pointer + datetime.timedelta(days=d_years * 365.25)
-                dasha_sequence.append((d_lord, current_pointer, end_pointer))
-                current_pointer = end_pointer
+            for _ in range(8):
+                y = DASHA_YEARS[idx]
+                end_date = current_date + datetime.timedelta(days=int(y * 365.25))
+                row_bg = "#fff9c4" if current_date <= datetime.date.today() <= end_date else "transparent"
+                curr_indicator = " 👈 (Current)" if current_date <= datetime.date.today() <= end_date else ""
+                
+                dasha_html_table += f"<tr style='background-color:{row_bg};'><td style='padding:10px; border:1px solid #ddd; font-weight:bold;'>{DASHA_LORDS_ENG[idx]}{curr_indicator}</td><td style='padding:10px; border:1px solid #ddd;'>{y} Years</td><td style='padding:10px; border:1px solid #ddd;'>{end_date.strftime('%d/%m/%Y')}</td></tr>"
+                current_date = end_date
                 idx = (idx + 1) % 9
-
-            today_dt = datetime.datetime.now()
-            running_dasha = "കണ്ടെത്താൻ കഴിഞ്ഞില്ല"
-            running_apaharam = "കണ്ടെത്താൻ കഴിഞ്ഞില്ല"
-            
-            for d_lord, s_time, e_time in dasha_sequence:
-                if s_time <= today_dt <= e_time:
-                    running_dasha = d_lord
-                    total_dasha_days = (e_time - s_time).days
-                    apaharam_pointer = s_time
-                    sub_idx = DASHA_LORDS.index(d_lord)
-                    
-                    for k in range(9):
-                        ap_lord = DASHA_LORDS[(sub_idx + k) % 9]
-                        ap_years = DASHA_YEARS[(sub_idx + k) % 9]
-                        ap_days = (total_dasha_days * ap_years) / 120
-                        ap_end = apaharam_pointer + datetime.timedelta(days=ap_days)
-                        
-                        if apaharam_pointer <= today_dt <= ap_end:
-                            running_apaharam = ap_lord
-                            break
-                        apaharam_pointer = ap_end
-                    break
-
-            st.markdown(f"""
-            <div class="current-dasha-box">
-                🎯 <b>ഇപ്പോൾ നടക്കുന്ന ദശാകാലം (Current Period):</b><br>
-                📆 ഇന്നത്തെ തീയതി: {today_dt.strftime('%d/%m/%Y')}<br>
-                🌟 <b>{running_dasha} ദശയിൽ {running_apaharam} അപഹാരം</b> ആണ് ഇപ്പോൾ നടക്കുന്നത്.
-            </div>
-            """, unsafe_allow_html=True)
-
-            st.write("**ഭൂത-ഭാവി ദശാ ടൈംലൈൻ (Full Dasha Timeline):**")
-            timeline_html = """<table style='width:100%; border:1px solid #ddd; border-collapse:collapse; text-align:left;'>
-            <tr style='background-color:#1a237e; color:white;'><th style='padding:10px;'>തുടങ്ങുന്ന തീയതി</th><th style='padding:10px;'>അവസാനിക്കുന്ന തീയതി</th><th style='padding:10px;'>ദശാ നാഥൻ</th></tr>"""
-            
-            for d_lord, s_time, e_time in dasha_sequence:
-                row_bg = "background-color: #fff9c4; font-weight: bold;" if d_lord == running_dasha else ""
-                timeline_html += f"<tr style='{row_bg}'><td style='padding:8px;'>{s_time.strftime('%d/%m/%Y')}</td><td style='padding:8px;'>{e_time.strftime('%d/%m/%Y')}</td><td style='padding:8px;'>{d_lord} ദശ</td></tr>"
-            timeline_html += "</table>"
-            st.markdown(timeline_html, unsafe_allow_html=True)
+                
+            dasha_html_table += "</table>"
+            st.markdown(dasha_html_table, unsafe_allow_html=True)
             st.markdown("---")
 
-            # ഗുണങ്ങളും ശ്രദ്ധക്കേണ്ട കാര്യങ്ങളും
-            st.markdown(f"""
-            <div class="pred-box">
-                <div class="strength">✅ <b>നിങ്ങളുടെ ഗുണം:</b> {STRENGTHS[nak_idx]}</div>
-                <div class="caution">⚠️ <b>ശ്രദ്ധിക്കാൻ:</b> {CAUTIONS[nak_idx]} ഒഴിവാക്കുന്നത് മനഃസമാധാനം നൽകും.</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # വാട്സാപ്പ് മെസ്സേജ് ലോജിക്
-            whatsapp_number = "919447093393"
-            planets_list = [f"ലഗ്നം: {lagnam_rashi}"]
-            for p_id, p_name in PLANETS.items():
-                res, _ = swe.calc_ut(jd, p_id, swe.FLG_SIDEREAL)
-                planets_list.append(f"{p_name}: {rashi_names[int(res[0]/30)]}")
+            # ==================== PDF GENERATION ====================
+            st.markdown("#### 📄 Download Your Wellness Report")
             
-            planets_str = "\n".join(planets_list)
+            pdf = FPDF()
+            pdf.add_page()
             
-            porutham_msg = ""
-            if partner_nak_selected:
-                porutham_msg = f"💑 *പൊരുത്തം:* 10-ൽ {matched_count} പൊരുത്തം ഉണ്ട് ({partner_nak_selected})\n"
+            pdf.set_font("Arial", 'B', 16)
+            pdf.cell(200, 10, text="UTA Astrology & Wellness Report", align='C')
+            pdf.ln(15)
+            
+            pdf.set_font("Arial", 'B', 14)
+            pdf.cell(200, 10, text="1. Personal Details", align='L')
+            pdf.ln(10)
+            
+            pdf.set_font("Arial", size=12)
+            safe_name = name.encode('ascii', errors='ignore').decode('ascii')
+            if not safe_name.strip(): safe_name = "User"
 
-            cesarean_msg = ""
-            if is_cesarean == "Yes":
-                cesarean_msg = "👶 *Type:* Cesarean Birth\n"
-
-            msg = (
-                f"✨ *UTA Wellness Report* ✨\n\n👤 *പേര്:* {name}\n📅 *തിയതി:* {dob.strftime('%d-%m-%Y')}\n"
-                f"⏰ *സമയം:* {birth_time} ({birth_time_type} ജനനം)\n💓 *Pulse:* {pulse}\n🌟 *നക്ഷത്രം:* {MAL_NAK[nak_idx]}\n"
-                f"{cesarean_msg}{porutham_msg}"
-                f"🧬 *Current:* {running_dasha} ദശ - {running_apaharam} അപഹാരം\n\n🪐 *ഗ്രഹനില:*\n{planets_str}"
+            pdf.cell(200, 8, text=f"Name: {safe_name}")
+            pdf.ln(8)
+            pdf.cell(200, 8, text=f"DOB: {dob.strftime('%d/%m/%Y')}")
+            pdf.ln(8)
+            
+            pdf_time_type = "Day Birth" if is_day_birth else "Night Birth"
+            pdf.cell(200, 8, text=f"Birth Time: {birth_time} ({pdf_time_type})")
+            pdf.ln(8)
+            pdf.cell(200, 8, text=f"Birth Place: {birth_place}")
+            pdf.ln(8)
+            pdf.cell(200, 8, text=f"Star (Nakshatram): {ENG_NAK[nak_idx]}")
+            pdf.ln(8)
+            pdf.cell(200, 8, text=f"Lagnam: {lagnam_rashi_eng} | Rashi: {moon_rashi_eng}")
+            pdf.ln(8)
+            pdf.cell(200, 8, text=f"Pulse Rate: {pulse} bpm")
+            pdf.ln(8)
+            pdf.cell(200, 8, text=f"Shareera Sankhya: {shareera_sankhya}")
+            pdf.ln(12)
+            
+            pdf.set_font("Arial", 'B', 14)
+            pdf.cell(200, 10, text="2. Saturn Transit Status", align='L')
+            pdf.ln(10)
+            
+            pdf.set_font("Arial", 'B', 14)
+            pdf.cell(200, 10, txt="2. Saturn Transit Status", align='L')
+            pdf.ln(10)
+            
+            pdf.set_font("Arial", size=11)
+            if diff in [11, 0, 1, 3, 6, 9]:
+                pdf.multi_cell(0, 8, txt=f"Current Status: Saturn Transit Alert Active in {rashi_names_eng[saturn_rashi_idx]}. Please take regular prayers.")
+            else:
+                pdf.multi_cell(0, 8, txt="Current Status: Safe. No major negative Saturn transits (Shani Dosha) at present.")
+            pdf.ln(10)
+            pdf.set_font("Arial", 'B', 14)
+            pdf.cell(200, 10, text="3. Janma Shishta Dasha", align='L')
+            pdf.ln(10)
+            
+            pdf.set_font("Arial", size=12)
+            pdf.cell(200, 8, text=f"Dasha Lord: {DASHA_LORDS_ENG[lord_idx]} Dasha")
+            pdf.ln(8)
+            pdf.cell(200, 8, text=f"Remaining Period: {r_y} Years")
+            pdf.ln(10)
+            
+            pdf_bytes = pdf.output(dest='S').encode('latin-1', errors='ignore')
+            
+            st.download_button(
+                label="📥 Download PDF Report",
+                data=pdf_bytes,
+                file_name="Astrology_Wellness_Report.pdf",
+                mime="application/pdf",
+                use_container_width=True
             )
-            whatsapp_url = f"https://wa.me/{whatsapp_number}?text={msg.replace('\n', '%0A').replace(' ', '%20')}"
-            
-            st.success("🎉 റിപ്പോർട്ട് തയ്യാർ!")
 
-            # ==========================================
-            # 📄 PDF ജനറേഷൻ ലോജിക് (FPDF2) - UPDATED FULL REPORT
-            # ==========================================
-            def generate_astrology_pdf():
-                pdf = FPDF()
-                pdf.add_page()
-                
-                # സുന്ദരമായ ഒരു ബോർഡറും ഡിസൈനും
-                pdf.set_stroke_color(26, 35, 126) 
-                pdf.set_line_width(1)
-                pdf.rect(5, 5, 200, 287) 
-                
-                # ഹെഡ്ഡർ സെക്ഷൻ
-                pdf.set_fill_color(26, 35, 126)
-                pdf.rect(5, 5, 200, 25, 'F')
-                
-                pdf.set_font("Helvetica", "B", 16)
-                pdf.set_text_color(255, 255, 255)
-                pdf.cell(0, 15, "UTA ASTROLOGY & DIGITAL WELLNESS REPORT", ln=True, align="C")
-                pdf.ln(10)
-                
-                # 1. പേഴ്സണൽ ഡീറ്റെയിൽസ്
-                pdf.set_text_color(26, 35, 126)
-                pdf.set_font("Helvetica", "B", 13)
-                pdf.cell(0, 10, "1. PERSONAL HOROSCOPE & WELLNESS DETAILS", ln=True)
-                pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                pdf.ln(4)
-                
-                pdf.set_font("Helvetica", "", 10)
-                pdf.set_text_color(0, 0, 0)
-                pdf.cell(90, 7, f"Name: {name}")
-                pdf.cell(90, 7, f"Star (Nakshathram): {MAL_NAK[nak_idx]}", ln=True)
-                pdf.cell(90, 7, f"Date of Birth: {dob.strftime('%d/%m/%Y')} ({weekday_name})")
-                pdf.cell(90, 7, f"Lagnam: {lagnam_rashi} | Rashi: {moon_rashi}", ln=True)
-                pdf.cell(90, 7, f"Time of Birth: {birth_time} ({birth_time_type})
+        except Exception as e:
+            st.error(f"Error generating report: {e}")
