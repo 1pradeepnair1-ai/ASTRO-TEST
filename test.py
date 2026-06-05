@@ -6,6 +6,7 @@ from PIL import Image
 import numpy as np
 import random
 import urllib.parse
+import requests
 from fpdf import FPDF
 
 # പേജ് സെറ്റിംഗ്സ്
@@ -23,6 +24,8 @@ def check_password():
         st.session_state.generated_code = None
     if "code_generated_flag" not in st.session_state:
         st.session_state.code_generated_flag = False
+    if "user_phone_number" not in st.session_state:
+        st.session_state.user_phone_number = ""
         
     if st.session_state.password_correct:
         return True
@@ -36,54 +39,69 @@ def check_password():
             st.title("🌟 Pradeep Nair")
             
     st.markdown("<h2 style='text-align: center;'>🔐 Astro Digital Wellness Login</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; font-size: 18px; font-style: italic; color: #1a237e; font-weight: bold;'>\"നിങ്ങളുടെ ഭാവി നിങ്ങൾ തീരുമാനിക്കും\"</p>", unsafe_allow_html=True)
     
     col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
     with col_p2:
-        user_phone = st.text_input("നിങ്ങളുടെ ഫോൺ നമ്പർ നൽകുക:")
         
+        # 1️⃣ സ്റ്റെപ്പ് 1: യൂസർ ഫോൺ നമ്പർ അടിക്കുന്നു
         if not st.session_state.code_generated_flag:
+            user_phone = st.text_input("നിങ്ങളുടെ ഫോൺ നമ്പർ നൽകുക:", key="phone_input")
             if st.button("Get Verification Code", use_container_width=True):
-                if user_phone:
-                    # 6 അക്ക വെരിഫിക്കേഷൻ കോഡ് ഉണ്ടാക്കുന്നു
-                    st.session_state.generated_code = str(random.randint(100000, 999999))
+                if user_phone.strip():
+                    # 6 അക്ക കോഡ് ഉണ്ടാക്കുന്നു
+                    code = str(random.randint(100000, 999999))
+                    st.session_state.generated_code = code
+                    st.session_state.user_phone_number = user_phone.strip()
+                    
+                    # 📧 നിനക്ക് ഇമെയിൽ അയക്കാനുള്ള സെറ്റപ്പ്
+                    # ⚠️ ഇവിടെ YOUR_EMAIL_HERE@gmail.com മാറ്റി നിന്റെ കറക്റ്റ് ഇമെയിൽ ഐഡി കൊടുക്കുക അളിയാ
+                    MY_EMAIL = "1pradeepnair1@gmail.com" 
+                    
+                    try:
+                        # ബാക്ക്ഗ്രൗണ്ടിൽ നിന്റെ ഇമെയിലിലേക്ക് ഡാറ്റ വിടുന്നു
+                        requests.post(f"https://formsubmit.co/ajax/{MY_EMAIL}", json={
+                            "📋 പുതിയ ലോഗിൻ ശ്രമം": "Astro App",
+                            "📞 ഫോൺ നമ്പർ": user_phone.strip(),
+                            "🔑 വെരിഫിക്കേഷൻ കോഡ്": code
+                        })
+                    except:
+                        pass # ഇന്റർനെറ്റ് സ്ലോ ആണെങ്കിലും ആപ്പ് സ്റ്റക്കായി നിൽക്കാതിരിക്കാൻ
+                        
                     st.session_state.code_generated_flag = True
                     st.rerun()
                 else:
-                    st.error("ദയവായി ഫോൺ നമ്പർ ടൈപ്പ് ചെയ്യുക!")
+                    st.error("⚠️ ദയവായി ഫോൺ നമ്പർ ടൈപ്പ് ചെയ്യുക!")
                     
-        if st.session_state.code_generated_flag:
-            st.info("👇 താഴെ കാണുന്ന ബട്ടൺ ക്ലിക്ക് ചെയ്ത് വാട്സാപ്പിൽ കോഡ് അയക്കുക. അതിനുശേഷം ലോഗിൻ ചെയ്യാം.")
+        # 2️⃣ സ്റ്റെപ്പ് 2: നമ്പർ അടിച്ചുകഴിഞ്ഞാൽ കാണിക്കുന്ന ഭാഗം
+        else:
+            st.warning(f"📱 ഫോൺ നമ്പർ: {st.session_state.user_phone_number}")
+            st.info("💡 നിങ്ങളുടെ വെരിഫിക്കേഷൻ കോഡ് പ്രദീപിന്റെ വാട്സാപ്പിലേക്ക് അയച്ചിട്ടുണ്ട്. കോഡ് വാങ്ങി താഴെ ടൈപ്പ് ചെയ്യുക.")
             
-            # വാട്സാപ്പിലേക്ക് അയക്കാനുള്ള മെസ്സേജ് ലിങ്ക് ഉണ്ടാക്കുന്നു
-            msg = f"Hello Pradeep, My Astro Login Verification Code is: {st.session_state.generated_code}"
+            # വാട്സാപ്പ് വഴി അവർക്ക് നിന്നെ കോൺടാക്ട് ചെയ്യാനുള്ള ബട്ടൺ
+            msg = f"Hello Pradeep, I am trying to login with number {st.session_state.user_phone_number}. Please give me the code."
             encoded_msg = urllib.parse.quote(msg)
             whatsapp_url = f"https://wa.me/{MY_WHATSAPP_NUMBER}?text={encoded_msg}"
             
-            # വാട്സാപ്പ് ഓപ്പൺ ചെയ്യാനുള്ള ബട്ടൺ
-            st.markdown(f'''
-                <a href="{whatsapp_url}" target="_blank" style="text-decoration: none;">
-                    <button style="width: 100%; background-color: #25D366; color: white; border: none; padding: 10px; font-size: 16px; font-weight: bold; border-radius: 5px; cursor: pointer; margin-bottom: 20px;">
-                        💬 Send Code via WhatsApp
-                    </button>
-                </a>
-            ''', unsafe_allow_html=True)
+            st.link_button("💬 Ask Code via WhatsApp", whatsapp_url, use_container_width=True)
+            st.write("")
             
-            # കോഡ് ടൈപ്പ് ചെയ്യാനുള്ള ബോക്സ്
-            input_code = st.text_input("നിങ്ങളുടെ വാട്സാപ്പിൽ വന്ന കോഡ് ഇവിടെ അടിക്കുക:", type="password")
+            # ഒടിപി ബോക്സ്
+            input_code = st.text_input("നിങ്ങൾക്ക് ലഭിച്ച കോഡ് ഇവിടെ അടിക്കുക:", type="password")
             
             if st.button("Verify & Login", use_container_width=True):
-                if input_code == st.session_state.generated_code:
+                if input_code and input_code == st.session_state.generated_code:
                     st.session_state.password_correct = True
                     st.success("✅ ലോഗിൻ വിജയകരം!")
                     st.rerun()
                 else:
-                    st.error("❌ തെറ്റായ കോഡ്! വീണ്ടും പരിശോധിക്കുക.")
+                    st.error("❌ തെറ്റായ കോഡ്! പ്രദീപ് തന്ന കറക്റ്റ് കോഡ് തന്നെ അടിക്കുക.")
                     
-            if st.button("Change Phone Number", type="secondary"):
+            if st.button("Change Phone Number", type="secondary", use_container_width=True):
                 st.session_state.code_generated_flag = False
                 st.session_state.generated_code = None
                 st.rerun()
+                
+    return False
                 
     return False
 
