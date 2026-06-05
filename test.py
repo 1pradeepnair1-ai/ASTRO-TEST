@@ -43,27 +43,22 @@ def check_password():
     col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
     with col_p2:
         
-        # 1️⃣ STEP 1: ഫോൺ നമ്പർ അടിക്കുന്ന ഭാഗം (HTML Form ലേക്ക് മാറ്റി)
+        # 1️⃣ STEP 1: ഫോൺ നമ്പർ അടിക്കുന്ന ഭാഗം
         if not st.session_state.code_generated_flag:
             if st.session_state.generated_code is None:
                 st.session_state.generated_code = str(random.randint(100000, 999999))
             
-            # 💡 നമ്പർ ഇൻപുട്ടും ബട്ടണും ഒരൊറ്റ HTML ഫോമിൽ ആക്കി. name="Phone_Number" ഉള്ളതുകൊണ്ട് ഇനി മെയിലിൽ വരും!
+            # 💡 ശ്രദ്ധിക്കുക: ഈ ഫോമിന്റെ ഉള്ളിലെ വരികൾ ഇടത്തോട്ട് ഒതുക്കി നിർത്തിയിരിക്കുന്നത് കോഡ് ബോക്സ് വരാതിരിക്കാനാണ്!
             html_form = f'''
-                <form action="https://formsubmit.co/1pradeepnair1@gmail.com" method="POST" target="_blank">
-                    <input type="hidden" name="📋 App Name" value="Astro App Login Attempt">
-                    <input type="hidden" name="🔑 OTP Verification Code" value="{st.session_state.generated_code}">
-                    <input type="hidden" name="_next" value="https://astro-test.streamlit.app">
-                    
-                    <label style="font-size: 16px; font-weight: bold; color: #333;">നിങ്ങളുടെ ഫോൺ നമ്പർ നൽകുക:</label>
-                    <input type="tel" name="📞 Phone_Number" placeholder="eg: 9447XXXXXX" required 
-                        style="width: 100%; padding: 12px; margin-top: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px;">
-                    
-                    <button type="submit" style="width: 100%; background-color: #FF4B4B; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer;">
-                        🚀 Get Verification Code
-                    </button>
-                </form>
-            '''
+<form action="https://formsubmit.co/1pradeepnair1@gmail.com" method="POST" target="_blank">
+<input type="hidden" name="📋 App Name" value="Astro App Login Attempt">
+<input type="hidden" name="🔑 OTP Verification Code" value="{st.session_state.generated_code}">
+<input type="hidden" name="_next" value="https://astro-test.streamlit.app">
+<label style="font-size: 16px; font-weight: bold; color: #333; display: block; margin-bottom: 8px;">നിങ്ങളുടെ ഫോൺ നമ്പർ നൽകുക:</label>
+<input type="tel" name="📞 Phone_Number" placeholder="eg: 9447XXXXXX" required style="width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+<button type="submit" style="width: 100%; background-color: #FF4B4B; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer;">🚀 Get Verification Code</button>
+</form>
+'''
             st.markdown(html_form, unsafe_allow_html=True)
             st.write("")
             
