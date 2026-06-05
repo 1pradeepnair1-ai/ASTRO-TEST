@@ -43,43 +43,40 @@ def check_password():
     col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
     with col_p2:
         
-        # 1️⃣ STEP 1: User enters phone number
+        # 1️⃣ STEP 1: ഫോൺ നമ്പർ അടിക്കുന്ന ഭാഗം (HTML Form ലേക്ക് മാറ്റി)
         if not st.session_state.code_generated_flag:
-            user_phone = st.text_input("നിങ്ങളുടെ ഫോൺ നമ്പർ നൽകുക:", key="phone_input")
+            if st.session_state.generated_code is None:
+                st.session_state.generated_code = str(random.randint(100000, 999999))
             
-            if user_phone.strip():
-                # 6 digit code ഉണ്ടാക്കുന്നു
-                if st.session_state.generated_code is None:
-                    st.session_state.generated_code = str(random.randint(100000, 999999))
-                
-                # HTML Form വഴി Direct ആയി FormSubmit-ലേക്ക് വിടുന്നു (ഇത് 100% മെയിൽ എത്തിക്കും)
-                html_form = f'''
-                    <form action="https://formsubmit.co/1pradeepnair1@gmail.com" method="POST" target="_blank">
-                        <input type="hidden" name="📋 New Login Attempt" value="Astro App">
-                        <input type="hidden" name="📞 Phone Number" value="{user_phone.strip()}">
-                        <input type="hidden" name="🔑 Verification Code" value="{st.session_state.generated_code}">
-                        <input type="hidden" name="_next" value="https://astro-test.streamlit.app">
-                        <button type="submit" style="width: 100%; background-color: #FF4B4B; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer;">
-                            🚀 Get Verification Code
-                        </button>
-                    </form>
-                '''
-                st.markdown(html_form, unsafe_allow_html=True)
-                
-                # ഒരു കൺഫർമേഷൻ ബട്ടൺ കൂടി (കോഡ് അടിക്കാനുള്ള ബോക്സ് വരാൻ)
-                if st.button("I Clicked the Above Button / ലോഗിൻ തുടരുക", use_container_width=True):
-                    st.session_state.user_phone_number = user_phone.strip()
-                    st.session_state.code_generated_flag = True
-                    st.rerun()
-            else:
-                st.info("💡 മുകളിൽ ഫോൺ നമ്പർ ടൈപ്പ് ചെയ്യുമ്പോൾ 'Get Verification Code' ബട്ടൺ വരും.")
+            # 💡 നമ്പർ ഇൻപുട്ടും ബട്ടണും ഒരൊറ്റ HTML ഫോമിൽ ആക്കി. name="Phone_Number" ഉള്ളതുകൊണ്ട് ഇനി മെയിലിൽ വരും!
+            html_form = f'''
+                <form action="https://formsubmit.co/1pradeepnair1@gmail.com" method="POST" target="_blank">
+                    <input type="hidden" name="📋 App Name" value="Astro App Login Attempt">
+                    <input type="hidden" name="🔑 OTP Verification Code" value="{st.session_state.generated_code}">
+                    <input type="hidden" name="_next" value="https://astro-test.streamlit.app">
                     
-        # 2️⃣ STEP 2: After clicking the button
+                    <label style="font-size: 16px; font-weight: bold; color: #333;">നിങ്ങളുടെ ഫോൺ നമ്പർ നൽകുക:</label>
+                    <input type="tel" name="📞 Phone_Number" placeholder="eg: 9447XXXXXX" required 
+                        style="width: 100%; padding: 12px; margin-top: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px;">
+                    
+                    <button type="submit" style="width: 100%; background-color: #FF4B4B; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer;">
+                        🚀 Get Verification Code
+                    </button>
+                </form>
+            '''
+            st.markdown(html_form, unsafe_allow_html=True)
+            st.write("")
+            
+            # സബ്മിറ്റ് ചെയ്ത ശേഷം ഒടിപി അടിക്കാനുള്ള സ്ക്രീനിലേക്ക് പോകാൻ
+            if st.button("I Clicked 'Get Code' / ലോഗിൻ തുടരുക", use_container_width=True):
+                st.session_state.code_generated_flag = True
+                st.rerun()
+                    
+        # 2️⃣ STEP 2: കോഡ് അടിക്കാനുള്ള ബോക്സ് കാണിക്കുന്ന ഭാഗം
         else:
-            st.warning(f"📱 ഫോൺ നമ്പർ: {st.session_state.user_phone_number}")
             st.info("💡 നിങ്ങളുടെ വെരിഫിക്കേഷൻ കോഡ് പ്രദീപിന്റെ മെയിലിലേക്ക് അയച്ചിട്ടുണ്ട്. കോഡ് വാങ്ങി താഴെ ടൈപ്പ് ചെയ്യുക.")
             
-            msg = f"Hello Pradeep, I am trying to login with number {st.session_state.user_phone_number}. Please give me the code."
+            msg = "Hello Pradeep, I am trying to login to Astro App. Please give me the verification code."
             encoded_msg = urllib.parse.quote(msg)
             whatsapp_url = f"https://wa.me/{MY_WHATSAPP_NUMBER}?text={encoded_msg}"
             
@@ -96,7 +93,7 @@ def check_password():
                 else:
                     st.error("❌ തെറ്റായ കോഡ്! പ്രദീപ് തന്ന കറക്റ്റ് കോഡ് തന്നെ അടിക്കുക.")
                     
-            if st.button("Change Phone Number", type="secondary", use_container_width=True):
+            if st.button("Go Back / നമ്പറിൽ മാറ്റം വരുത്തണോ?", type="secondary", use_container_width=True):
                 st.session_state.code_generated_flag = False
                 st.session_state.generated_code = None
                 st.rerun()
