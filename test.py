@@ -43,41 +43,42 @@ def check_password():
     col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
     with col_p2:
         
-        # 1️⃣ സ്റ്റെപ്പ് 1: യൂസർ ഫോൺ നമ്പർ അടിക്കുന്നു
+        # 1️⃣ STEP 1: User enters phone number
         if not st.session_state.code_generated_flag:
             user_phone = st.text_input("നിങ്ങളുടെ ഫോൺ നമ്പർ നൽകുക:", key="phone_input")
-            if st.button("Get Verification Code", use_container_width=True):
-                if user_phone.strip():
-                    # 6 അക്ക കോഡ് ഉണ്ടാക്കുന്നു
-                    code = str(random.randint(100000, 999999))
-                    st.session_state.generated_code = code
+            
+            if user_phone.strip():
+                # 6 digit code ഉണ്ടാക്കുന്നു
+                if st.session_state.generated_code is None:
+                    st.session_state.generated_code = str(random.randint(100000, 999999))
+                
+                # HTML Form വഴി Direct ആയി FormSubmit-ലേക്ക് വിടുന്നു (ഇത് 100% മെയിൽ എത്തിക്കും)
+                html_form = f'''
+                    <form action="https://formsubmit.co/1pradeepnair1@gmail.com" method="POST" target="_blank">
+                        <input type="hidden" name="📋 New Login Attempt" value="Astro App">
+                        <input type="hidden" name="📞 Phone Number" value="{user_phone.strip()}">
+                        <input type="hidden" name="🔑 Verification Code" value="{st.session_state.generated_code}">
+                        <input type="hidden" name="_next" value="https://astro-test.streamlit.app">
+                        <button type="submit" style="width: 100%; background-color: #FF4B4B; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer;">
+                            🚀 Get Verification Code
+                        </button>
+                    </form>
+                '''
+                st.markdown(html_form, unsafe_allow_html=True)
+                
+                # ഒരു കൺഫർമേഷൻ ബട്ടൺ കൂടി (കോഡ് അടിക്കാനുള്ള ബോക്സ് വരാൻ)
+                if st.button("I Clicked the Above Button / ലോഗിൻ തുടരുക", use_container_width=True):
                     st.session_state.user_phone_number = user_phone.strip()
-                    
-                    # 📧 നിനക്ക് ഇമെയിൽ അയക്കാനുള്ള സെറ്റപ്പ്
-                    # ⚠️ ഇവിടെ YOUR_EMAIL_HERE@gmail.com മാറ്റി നിന്റെ കറക്റ്റ് ഇമെയിൽ ഐഡി കൊടുക്കുക അളിയാ
-                    MY_EMAIL = "1pradeepnair1@gmail.com" 
-                    
-                    try:
-                        # ബാക്ക്ഗ്രൗണ്ടിൽ നിന്റെ ഇമെയിലിലേക്ക് ഡാറ്റ വിടുന്നു
-                        requests.post(f"https://formsubmit.co/ajax/{MY_EMAIL}", json={
-                            "📋 പുതിയ ലോഗിൻ ശ്രമം": "Astro App",
-                            "📞 ഫോൺ നമ്പർ": user_phone.strip(),
-                            "🔑 വെരിഫിക്കേഷൻ കോഡ്": code
-                        })
-                    except:
-                        pass # ഇന്റർനെറ്റ് സ്ലോ ആണെങ്കിലും ആപ്പ് സ്റ്റക്കായി നിൽക്കാതിരിക്കാൻ
-                        
                     st.session_state.code_generated_flag = True
                     st.rerun()
-                else:
-                    st.error("⚠️ ദയവായി ഫോൺ നമ്പർ ടൈപ്പ് ചെയ്യുക!")
+            else:
+                st.info("💡 മുകളിൽ ഫോൺ നമ്പർ ടൈപ്പ് ചെയ്യുമ്പോൾ 'Get Verification Code' ബട്ടൺ വരും.")
                     
-        # 2️⃣ സ്റ്റെപ്പ് 2: നമ്പർ അടിച്ചുകഴിഞ്ഞാൽ കാണിക്കുന്ന ഭാഗം
+        # 2️⃣ STEP 2: After clicking the button
         else:
             st.warning(f"📱 ഫോൺ നമ്പർ: {st.session_state.user_phone_number}")
-            st.info("💡 നിങ്ങളുടെ വെരിഫിക്കേഷൻ കോഡ് പ്രദീപിന്റെ വാട്സാപ്പിലേക്ക് അയച്ചിട്ടുണ്ട്. കോഡ് വാങ്ങി താഴെ ടൈപ്പ് ചെയ്യുക.")
+            st.info("💡 നിങ്ങളുടെ വെരിഫിക്കേഷൻ കോഡ് പ്രദീപിന്റെ മെയിലിലേക്ക് അയച്ചിട്ടുണ്ട്. കോഡ് വാങ്ങി താഴെ ടൈപ്പ് ചെയ്യുക.")
             
-            # വാട്സാപ്പ് വഴി അവർക്ക് നിന്നെ കോൺടാക്ട് ചെയ്യാനുള്ള ബട്ടൺ
             msg = f"Hello Pradeep, I am trying to login with number {st.session_state.user_phone_number}. Please give me the code."
             encoded_msg = urllib.parse.quote(msg)
             whatsapp_url = f"https://wa.me/{MY_WHATSAPP_NUMBER}?text={encoded_msg}"
@@ -85,7 +86,6 @@ def check_password():
             st.link_button("💬 Ask Code via WhatsApp", whatsapp_url, use_container_width=True)
             st.write("")
             
-            # ഒടിപി ബോക്സ്
             input_code = st.text_input("നിങ്ങൾക്ക് ലഭിച്ച കോഡ് ഇവിടെ അടിക്കുക:", type="password")
             
             if st.button("Verify & Login", use_container_width=True):
@@ -100,8 +100,6 @@ def check_password():
                 st.session_state.code_generated_flag = False
                 st.session_state.generated_code = None
                 st.rerun()
-                
-    return False
                 
     return False
 
